@@ -79,7 +79,7 @@ def read_from_single_file():
         write_files[table].close()     
 
 def load_initial_data():
-    clear_directory(os.getcwd()+"/data/output/")
+    # clear_directory(os.getcwd()+"/data/output/")
     # read_from_single_file()
     for table in orig_tables:
         path = os.getcwd() + "/data/data_small/" + table + ".csv"

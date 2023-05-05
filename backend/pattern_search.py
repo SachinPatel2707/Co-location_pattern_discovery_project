@@ -28,8 +28,7 @@ class pattern_search:
         con.extract_data(self.xmin, self.ymin, self.xmax, self.ymax);
         con.get_counts_of_each_class()
         con.generate_size_two_tables()
-        # max_size = con.check_further(2)
-        self.result = []
+        max_size = con.check_further(2)
         self.status = 0
         
         sql = alc.text(
@@ -49,16 +48,45 @@ class pattern_search:
         
         data.db_conn.execute(sql)
         # print(self.xmin, self.ymin, self.xmax, self.ymax, self.status)
-        print(xmin, ymin, xmax, ymax, self.status)
+        self.result = self.remove_subsets(sorted(list(data.patterns_found), key=len, reverse=True))
+        data.patterns_found.clear()
+        data.tables = [[], ['a', 'b', 'c', 'd', 'e']]
+        # print(xmin, ymin, xmax, ymax, self.status)
     
     def check_area(self):
         a = con.haversine_distance(self.ymin, self.xmin, self.ymax, self.xmin)
         b = con.haversine_distance(self.ymin, self.xmin, self.ymin, self.xmax)
         area = a * b
-        print("area : ", area)
+        # print("area : ", area)
         if area >= data.min_area and area <= data.max_area:
             return 0
         elif area < data.min_area:
             return -1
         elif area > data.max_area:
             return 1
+    
+    def remove_subsets(self, res):
+        result = []
+        idx = 0
+        while idx < len(res):
+            jdx = idx+1
+            while jdx < len(res):
+                if res[jdx] != res[idx] and self.isSubsequence(res[jdx], res[idx]):
+                    del res[jdx]
+                else:
+                    jdx += 1
+            result.append(res[idx])
+            idx += 1
+        return result
+    
+    def isSubsequence(self, s, str):
+        i, j = 0, 0
+        while i < len(s) and j < len(str):
+            if s[i] == str[j]:
+                i += 1
+                j += 1
+            else:
+                j += 1
+        if i == len(s):
+            return True
+        return False

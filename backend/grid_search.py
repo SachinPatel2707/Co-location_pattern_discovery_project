@@ -39,7 +39,7 @@ class Grid :
         init_y = data.global_y_min
         grid_y = [init_y + k*delta_y for k in range(data.y_lambda)]
 
-        # print(delta_x, delta_y, delta_area, grid_x, grid_y)
+        print(delta_x, delta_y, delta_area)
         data.delta_x = delta_x
         data.delta_y = delta_y
         data.delta_area = delta_area
@@ -55,12 +55,17 @@ class Grid :
     def iterate(self):
         sql = alc.text("delete from rectangles")
         data.db_conn.execute(sql)
-        for j in range(3):
-            for i in range(3):
+        for j in range(data.y_lambda):
+            for i in range(data.x_lambda):
                 self.solve(i, j, i+1, j+1)
                 
 
     def solve(self, xmin, ymin, xmax, ymax):
+        id = str(xmin) + str(ymin) + str(xmax) + str(ymax)
+        if id in data.visited:
+            return
+        data.visited.add(id)
+
         ps = PS(xmin, ymin, xmax, ymax)
         if ps.status == -1:
             if xmax+1 <= data.x_lambda:
@@ -72,5 +77,7 @@ class Grid :
             t = {'coordinates': [[xmin, ymin], [xmax, ymax]],
                 'patterns': ps.result}
             data.final_res.append(t)
+            data.rects_with_patterns = data.rects_with_patterns + 1
+        data.total_rects = data.total_rects + 1
 
                 
