@@ -2,10 +2,15 @@ from collections import OrderedDict
 import geopandas as gpd
 import pandas as pd
 from backend.data import *
+from backend import data
 from backend.queries import clear_directory
+from backend import queries
 import sqlalchemy as alc
-import os, sys, random
+import os, sys, random, math
 import prettytable as pt
+import matplotlib.pyplot as plt
+
+
 
 def generate_data(size):
     # clear_directory(os.getcwd()+"/data/large_dataset/")
@@ -64,6 +69,13 @@ def verify_PI(size):
         if (cur_PI < PI):
             db_conn.execute(text('drop table {}'.format(t)))
             tables[size].remove(t)
+
+# def getPI(cols, cur_count):
+#     min_pr = 10
+#     for col in cols:
+#         pr = cur_count[col]/count[col]
+#         min_pr = min(min_pr, pr)
+#     return min_pr
 
 def getPI(cols, cur_count):
     min_pr = 10
@@ -208,3 +220,62 @@ def minimum_bounding_rectangle(points):
 
     # Return the coordinates of the minimum bounding rectangle.
     return [(min_x, min_y), (max_x, max_y)]
+
+def find_area_of_rectangle(y_max, x_max, y_min, x_min):
+    # compute the distance between the two corners along the latitude and longitude
+    R = 6371  # radius of the earth in kilometers
+    dLat = math.radians(y_max - y_min)
+    dLon = math.radians(x_max - x_min)
+    a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.cos(math.radians(y_min)) * math.cos(math.radians(y_max)) * math.sin(dLon / 2) * math.sin(dLon / 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    length = R * c  # length of the rectangle in kilometers
+    # width of the rectangle in kilometers
+    width = R * c * math.cos(math.radians((y_min + y_max) / 2))
+
+    # convert the length and width to square kilometers
+    # length_km2 = length * length
+    # width_km2 = width * width
+
+    # compute the area of the rectangle in square kilometers
+    # area = length_km2 * width_km2
+    area = length * width
+
+    print("The area of the rectangle is: {:.2f} square kilometers".format(area))
+    print("length: {} \t breadth: {}".format(length, width))
+
+
+def haversine_distance(lat1, lon1, lat2, lon2):
+    """
+    Compute the Haversine distance between two points given their latitude and longitude coordinates.
+    """
+    R = 6371  # radius of the earth in kilometers
+    dLat = math.radians(lat2 - lat1)
+    dLon = math.radians(lon2 - lon1)
+    a = math.sin(dLat / 2) * math.sin(dLat / 2) + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dLon / 2) * math.sin(dLon / 2)
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    distance = R * c
+    return distance
+
+def visualise_grid():
+    x, y = data.grid_x, data.grid_y
+    fig, ax = plt.subplots()
+
+    ax.vlines(x=x, ymin=min(y), ymax=max(y), color='gray', linestyle='dashed')
+    ax.hlines(y=y, xmin=min(x), xmax=max(x), color='gray', linestyle='dashed')
+
+    # for i in range(len(x)):
+    #     for j in range(len(y)):
+    #         rect = plt.Rectangle((x[i], y[j]), delta_x, delta_y, fill=None, edgecolor='red', lw=2)
+    #         ax.add_patch(rect)
+    #         # ax.set_xlim(min(x), max(x))
+    #         # ax.set_ylim(min(y), max(y))
+    #         plt.pause(0.2)
+    #         rect.remove()
+
+    plt.show()
+
+def extract_data(xmin, ymin, xmax, ymax):
+    for i in range(len(data.tables[1])):
+        sql = alc.text("Create table {} as select * from {} where cast (latitude as double precision) between {} and {} and cast (longitude as double precision) between {} and {}".format(data.tables[1][i], data.orig_tables[i], ymin, ymax, xmin, xmax))
+        db_conn.execute(sql)
+    queries.create_indexes()
